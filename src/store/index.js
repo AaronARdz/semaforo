@@ -20,9 +20,11 @@ export default new Vuex.Store({
     rightCars: [1,2,3,4,5,6,7,8,9],
     bottomCars: [1,2,3,4,5,6,7,8,9],
     counter: 50,
-    i: 0,
-    interval: '',
-    onOff: false
+    interval: Function,
+    onOff: false,
+    verticalTimeout: Function,
+    horizontalTimeout:  Function,
+    semaforoDuration: 3000,
   },
   mutations: {
     setVertical(state, payload) {
@@ -36,29 +38,72 @@ export default new Vuex.Store({
       state.semaforoHorizontal.yellow = !payload;
     },
     setStop(state, payload){
-      state.i = payload;
+      state.stop = payload;
     },
     setOnOff(state,payload) {
       state.onOff = payload
+    },
+    setDuration(state,payload) {
+      state.semaforoDuration = payload;
     }
   },
   actions: {
-    startGame({dispatch}) {
+    startGame({dispatch,state}) {
         console.log("start");
-        this.state.interval = setInterval(() => {
-          console.log(this.state.onOff)
-          dispatch('setSemaforos');
-
-        }, 1000);
-        this.state.i++;
+          state.interval = setInterval(() => {
+            console.log(state.onOff)
+            dispatch('setSemaforos');
+            dispatch('moveCars');
+          }, state.semaforoDuration);
     },
-    setSemaforos({commit}) {
-        commit('setOnOff', !this.state.onOff);
-        commit('setVertical', this.state.onOff);
-        commit('setHorizontal', !this.state.onOff);
+    setSemaforos({commit,state}) {
+        commit('setOnOff', !state.onOff);
+        commit('setVertical', state.onOff);
+        commit('setHorizontal', !state.onOff);
     },
-    stopGame() {
-      clearInterval(this.state.interval)
+    stopGame({state}) {
+      clearInterval(state.interval);
+      clearInterval(state.verticalTimeout);
+      clearInterval(state.horizontalTimeout);
+    },
+    verticalPop({state}) {
+      state.topCars.pop()
+      state.bottomCars.pop()
+      state.rightCars.push(1)
+      state.leftCars.push(1)
+    },
+    horizontalPop({state}) {
+      state.rightCars.pop()
+      state.leftCars.pop()
+      state.topCars.push(1)
+      state.bottomCars.push(1)
+    },
+    moveCars({state, dispatch}) {
+      if (state.semaforoVertical.green == true) {
+        clearInterval(state.verticalTimeout);
+        state.horizontalTimeout = setInterval(() => {
+          console.log('vertical')
+          dispatch('verticalPop');
+        }, state.topCars.length * 100);
+        console.log(state.topCars.length)
+      } else {
+        clearInterval(state.horizontalTimeout);
+        state.verticalTimeout = setInterval(() => {
+          console.log('horizontal')
+          dispatch('horizontalPop');
+        }, state.bottomCars.length * 100);
+      }
+    },
+    getDuration ({commit}, duration) {
+      commit('setDuration', duration * 1000)
+    }
+  },
+  getters: {
+    horizontalCars(state) {
+      return state.rightCars.length
+    },
+    verticalCars(state) {
+      return state.topCars.length
     }
   },
   modules: {}
